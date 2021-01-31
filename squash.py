@@ -28,13 +28,74 @@ V = 1
 #--- Fonctions
 def deplace_raquette(sens):
     raquette_position[H] += RAQUETTE_DEPLACEMENT * sens
-    if raquette_position[H] < 0:
-        raquette_position[H] = 0
-    elif raquette_position[H] + RAQUETTE_LARGEUR >= FENETRE_LARGEUR:
-        raquette_position[H] = FENETRE_LARGEUR - RAQUETTE_LARGEUR
+    test_touche_droite(raquette_position, RAQUETTE_LARGEUR,FENETRE_LARGEUR)
+    test_touche_gauche(raquette_position, 0, 0)
+
+def test_touche_gh(objet, distance, point, direction, separe):
+    if objet[direction] - distance <= point:
+        if separe:
+            objet[direction] = point + distance
+        return True
+    else:
+        return False
+
+def test_touche_db(objet, distance, point, direction, separe):
+    if objet[direction] + distance >= point:
+        if separe:
+            objet[direction] = point - distance
+        return True
+    else:
+        return False
+
+
+def test_touche_droite(objet, largeur_droite, point_droit, separe = True):
+    return test_touche_db(objet, largeur_droite, point_droit, H, separe)
+
+def test_touche_gauche(objet, largeur_gauche, point_gauche, separe = True):
+    return test_touche_gh(objet, largeur_gauche, point_gauche, H, separe)
+
+def test_touche_haut(objet, hauteur_haut, point_haut, separe = True):
+    return test_touche_gh(objet, hauteur_haut, point_haut, V, separe)
+
+def test_touche_bas(objet, hauteur_bas, point_bas, separe = True):
+    return test_touche_db(objet, hauteur_bas, point_bas, V, separe)
+
+def traite_entrees():
+
+    global fini
+    for evenement in pygame.event.get():
+        if evenement.type == pygame.QUIT:
+            fini = True
+        elif evenement.type == pygame.KEYDOWN:
+            if evenement.key == TOUCHE_DROITE:
+                deplace_raquette(VERS_DROITE)
+            if evenement.key == TOUCHE_GAUCHE:
+                deplace_raquette(VERS_GAUCHE)
+
+def anime():
+
+    balle_position[H] = balle_position[H] + balle_vitesse[H]
+    balle_position[V] = balle_position[V] + balle_vitesse[V]
+
+
+    if test_touche_droite(balle_position, BALLE_RAYON, FENETRE_LARGEUR) \
+       or test_touche_gauche(balle_position, BALLE_RAYON, 0):
+        balle_vitesse[H] = -balle_vitesse[H]
+
+    if test_touche_bas(balle_position, BALLE_RAYON, FENETRE_HAUTEUR) \
+       or test_touche_haut(balle_position, BALLE_RAYON, 0):
+        balle_vitesse[V] = -balle_vitesse[V]
+
+        
+def dessine_court():
+
+    fenetre.fill(BLEU_CLAIR)
+    pygame.draw.circle(fenetre, JAUNE, balle_position, BALLE_RAYON)
+    pygame.draw.rect(fenetre, ROUGE, (raquette_position, (RAQUETTE_LARGEUR, RAQUETTE_HAUTEUR)))
 
 
 pygame.init()
+pygame.key.set_repeat(200,25)
 
 fenetre_taille = (FENETRE_LARGEUR, FENETRE_HAUTEUR)
 fenetre = pygame.display.set_mode(fenetre_taille)
@@ -52,39 +113,13 @@ temps = pygame.time.Clock()
 while not fini:
 
     #--- Quitter l'écran avec la croix
-    for evenement in pygame.event.get():
-        if evenement.type == pygame.QUIT:
-            fini = True
-        elif evenement.type == pygame.KEYDOWN:
-            if evenement.key == TOUCHE_DROITE:
-                deplace_raquette(VERS_DROITE)
-            if evenement.key == TOUCHE_GAUCHE:
-                deplace_raquette(VERS_GAUCHE)
+    traite_entrees()
 
     #--- Logique du jeu
-    balle_position[H] = balle_position[H] + balle_vitesse[H]
-    balle_position[V] = balle_position[V] + balle_vitesse[V]
-
-    if balle_position[H] + BALLE_RAYON >= FENETRE_LARGEUR:
-        balle_position[H] = FENETRE_LARGEUR - BALLE_RAYON
-        balle_vitesse[H] = -balle_vitesse[H]
-    else:
-        if balle_position[H] < BALLE_RAYON:
-            balle_position[H] = BALLE_RAYON
-            balle_vitesse[H] = -balle_vitesse[H]
-
-    if balle_position[V] + BALLE_RAYON >= FENETRE_HAUTEUR:
-        balle_position[V] = FENETRE_HAUTEUR - BALLE_RAYON
-        balle_vitesse[V] = -balle_vitesse[V]
-    else:
-        if balle_position[V] < BALLE_RAYON:
-            balle_position[V] = BALLE_RAYON
-            balle_vitesse[V] = -balle_vitesse[V]
+    anime()
 
     #--- Dessiner l'écran
-    fenetre.fill(BLEU_CLAIR)
-    pygame.draw.circle(fenetre, JAUNE, balle_position, BALLE_RAYON)
-    pygame.draw.rect(fenetre, ROUGE, (raquette_position, (RAQUETTE_LARGEUR, RAQUETTE_HAUTEUR)))
+    dessine_court()
 
     #--- Raffraichir l'écran
     pygame.display.flip()
