@@ -1,55 +1,16 @@
 import pygame
+from value import *
 
 
-#--- Variables
-BLEU_CLAIR = (0,191,200)
-JAUNE = (255,255,0)
-ROUGE = (255,0,0)
-GRIS = (96,96,96)
-
-FENETRE_LARGEUR = 800
-FENETRE_HAUTEUR = 600
-
-BALLE_RAYON = 10
-BALLE_DIAM = 2*BALLE_RAYON
-
-RAQUETTE_LARGEUR = 70
-RAQUETTE_HAUTEUR = 10
-RAQUETTE_ESPACE = 10
-RAQUETTE_DEPLACEMENT = 10
-
-VERS_DROITE = 1
-VERS_GAUCHE = -1
-
-TOUCHE_DROITE = pygame.K_RIGHT
-TOUCHE_GAUCHE = pygame.K_LEFT
-
-MUR_EPAISSEUR = 10
-
-CENTRE = 0
-DROITE = 2
-GAUCHE = 1
-HAUT = 4
-BAS = 8
-HAUT_DROITE = 6
-HAUT_GAUCHE = 5
-BAS_DROITE = 10
-BAS_GAUCHE = 9
-
-H = 0
-V = 1
 
 #--- Fonctions
 def position_horizontale_rel(rect):
     if balle_position[H] < rect[0][H]:
         return GAUCHE
-        print("GAUCHE")
     elif balle_position[H] > rect[0][H] + rect[1][H]:
         return DROITE
-        print("DROITE")
     else:
         return CENTRE
-        print("CENTRE")
 
 def position_verticale_rel(rect):
     if balle_position[V] < rect[0][V]:
@@ -64,13 +25,40 @@ def position_relative(rect):
 
 def distance2(pt1, pt2):
     delta_h = pt1[H] - pt2[H]
-    delta_v = pt1[V] - pth2[V]
+    delta_v = pt1[V] - pt2[V]
     return delta_h * delta_h + delta_v * delta_v
 
+def resoudre_collision_coin(coin, delta_h, delta_v, vitesse_h, vitesse_v):
+    balle_position[H] = coin[H] + delta_h
+    balle_position[V] = coin[V] + delta_v
+    balle_vitesse[H] = vitesse_h
+    balle_vitesse[V] = vitesse_v
+
+def collision_coin_haut_gauche(rect):
+    delta = round(BALLE_RAYON * 0.707)
+    resoudre_collision_coin(rect[0], -delta, -delta, -abs(balle_vitesse[H]), -abs(balle_vitesse[V]))
+
+def collision_coin_haut_droite(rect):
+    delta = round(BALLE_RAYON * 0.707)
+    resoudre_collision_coin((rect[0][H], rect[1][H], rect[0][V]), delta, -delta, abs(balle_vitesse[H]), abs(balle_vitesse[V]))
+
+def collision_coin_bas_gauche(rect):
+    delta = round(BALLE_RAYON * 0.707)
+    resoudre_collision_coin((rect[0][H] +  rect[1][H], rect[0][V]), -delta, delta, -abs(balle_vitesse[H]), abs(balle_vitesse[V]))
+
+def collision_coin_bas_droite(rect):
+    delta = round(BALLE_RAYON * 0.707)
+    resoudre_collision_coin((rect[0][H] + rect[1][H], rect[0][V] + rect[1][V]), delta, delta, abs(balle_vitesse[H]), abs(balle_vitesse[V]))
+
+def deplace_raquette(sens):
+    raquette_position[H] += RAQUETTE_DEPLACEMENT * sens
+    test_touche_droite(raquette_position, RAQUETTE_LARGEUR,FENETRE_LARGEUR)
+    test_touche_gauche(raquette_position, 0, 0)
+
 def test_collision(rect):
-    ball_rect = pygame.ReCT((balle_position[H] - BALLE_RAYON, balle_position[V] - BALLE_RAYON),(BALLE_DIAM, BALLE_DIAM))
+    ball_rect = pygame.Rect((balle_position[H] - BALLE_RAYON, balle_position[V] - BALLE_RAYON),(BALLE_DIAM, BALLE_DIAM))
     rayon2 = BALLE_RAYON * BALLE_RAYON
-    if ball_rect.collidrect(rect):
+    if ball_rect.colliderect(rect):
         position = position_relative(rect)
         if position == GAUCHE:
             if test_touche_droite(balle_position, BALLE_RAYON, rect[0][H]):
@@ -96,13 +84,15 @@ def test_collision(rect):
         elif position == BAS_DROITE:
             if distance2(balle_position, (rect[0][H] + rect[1][H], rect[0][V] + rect[1][V])) <= rayon2:
                 collision_coin_bas_droite(rect)
-
-def resoudre_collision_coin()
-
-def deplace_raquette(sens):
-    raquette_position[H] += RAQUETTE_DEPLACEMENT * sens
-    test_touche_droite(raquette_position, RAQUETTE_LARGEUR,FENETRE_LARGEUR)
-    test_touche_gauche(raquette_position, 0, 0)
+        else:
+            delta_g = abs(balle_position[H] - rect[0][H])
+            delta_d = abs(balle_position[H] - rect[0][H] - rect[1][H])
+            if delta_g < delta_d:
+                balle_position[H] = rect[0][H] - BALLE_RAYON
+                balle_vitesse[H] = -abs(balle_vitesse[H])
+            else:
+                balle_position[H] = rect[0][H] + rect[1][H] + BALLE_RAYON
+                balle_vitesse[H] = abs(balle_vitesse[H])
 
 def test_touche_gh(objet, distance, point, direction, separe):
     if objet[direction] - distance <= point:
@@ -120,9 +110,9 @@ def test_touche_db(objet, distance, point, direction, separe):
     else:
         return False
 
-def test_touche_droite(objet, largeur_droite, point_droit, separe = True):
+def test_touche_droite(objet, largeur_droite, point_droit, separe=True):
     return test_touche_db(objet, largeur_droite, point_droit, H, separe)
-
+    
 def test_touche_gauche(objet, largeur_gauche, point_gauche, separe = True):
     return test_touche_gh(objet, largeur_gauche, point_gauche, H, separe)
 
@@ -145,7 +135,7 @@ def traite_entrees():
                 deplace_raquette(VERS_GAUCHE)
 
 def anime():
-
+    global fini
     balle_position[H] = balle_position[H] + balle_vitesse[H]
     balle_position[V] = balle_position[V] + balle_vitesse[V]
 
@@ -154,9 +144,13 @@ def anime():
        or test_touche_gauche(balle_position, BALLE_RAYON, 0):
         balle_vitesse[H] = -balle_vitesse[H]
 
-    if test_touche_bas(balle_position, BALLE_RAYON, FENETRE_HAUTEUR) \
-       or test_touche_haut(balle_position, BALLE_RAYON, 0):
+    if test_touche_haut(balle_position, BALLE_RAYON, MUR_EPAISSEUR):
         balle_vitesse[V] = -balle_vitesse[V]
+
+    test_collision((raquette_position, (RAQUETTE_LARGEUR, RAQUETTE_HAUTEUR)))
+
+    if test_touche_bas(balle_position, BALLE_RAYON, FENETRE_HAUTEUR + BALLE_DIAM):
+        fini = True
        
 def dessine_court():
 
